@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select g.rating, st_x(g.geomout) as lon, st_y(g.geomout) as lat from geocode($1, $2) as g",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "lat",
+        "type_info": "Float8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "c38414ecaf83932e52f194b85f858d97f43761f3fb590cebbe51d6634e18e6d9"
+}
