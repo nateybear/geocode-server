@@ -1,36 +1,57 @@
 use anyhow::anyhow;
 use axum::extract::{Json, Query, State};
 use futures::stream::{FuturesOrdered, StreamExt};
-use log::warn;
 use serde::Serialize;
 use sqlx::{Encode, PgPool};
 use std::sync::Arc;
+use tracing::{instrument, warn};
 
 use crate::error::AppError;
 use crate::options::*;
 
 #[derive(Encode, Serialize, Default, Debug)]
-struct GeocodeOutput {
+pub(crate) struct GeocodeOutput {
     rating: Option<i32>,
     lon: Option<f64>,
     lat: Option<f64>,
+    stno: Option<i32>,
+    street: Option<String>,
+    styp: Option<String>,
+    city: Option<String>,
+    state: Option<String>,
+    zip: Option<String>,
 }
 
+#[instrument(skip(pool, results))]
 async fn geocode_query(
     pool: &PgPool,
     address: &str,
     results: &i32,
 ) -> anyhow::Result<Vec<GeocodeOutput>> {
-    Ok(sqlx::query_as!(
+    match sqlx::query_as!(
         GeocodeOutput,
-        "select g.rating, st_x(g.geomout) as lon, st_y(g.geomout) as lat from geocode($1, $2) as g",
+        "select g.rating, 
+            st_x(g.geomout) as lon, 
+            st_y(g.geomout) as lat, 
+            (addy).address as stno, 
+            (addy).streetname as street, 
+            (addy).streettypeabbrev as styp, 
+            (addy).location as city, 
+            (addy).stateabbrev as state,
+            (addy).zip 
+        from geocode($1, $2) as g",
         address,
         results
     )
     .fetch_all(pool)
-    .await?)
+    .await?
+    {
+        out if out.is_empty() => Err(anyhow!("No results found")),
+        out => Ok(out),
+    }
 }
 
+#[instrument(skip_all)]
 pub(crate) async fn geocode(
     State(pool): State<Arc<PgPool>>,
     Query(options_opt): Query<OptionsOpt>,
@@ -40,21 +61,24 @@ pub(crate) async fn geocode(
 
     let query_out = geocode_query(&pool, &address, &results).await?;
 
-    if query_out.is_empty() {
-        return Err(anyhow!("No results found").into());
-    }
-
-    f.print(query_out)
+    Ok(f.print(query_out)?)
 }
 
 #[derive(Encode, Serialize, Default, Debug)]
-struct GeocodeBatchOutput {
+pub(crate) struct GeocodeBatchOutput {
     address: String,
     rating: Option<i32>,
     lon: Option<f64>,
     lat: Option<f64>,
 }
 
+#[derive(Serialize, Debug)]
+pub(crate) struct GeocodeBatchResults {
+    pub(crate) successes: Vec<GeocodeBatchOutput>,
+    pub(crate) errors: Vec<(String, String)>,
+}
+
+#[instrument(skip_all)]
 pub(crate) async fn geocode_batch(
     State(pool): State<Arc<PgPool>>,
     Query(options_opt): Query<OptionsOpt>,
@@ -70,18 +94,22 @@ pub(crate) async fn geocode_batch(
 
     let query_out = query_out.collect::<Vec<_>>().await;
 
-    let out = query_out.iter().zip(addresses.iter());
+    let out = query_out.into_iter().zip(addresses.into_iter());
 
-    out.clone().filter(|(o, _)| o.is_err()).for_each(|(o, a)| {
-        warn!("Failed to geocode address {:?}: {:?}", a, o);
-    });
+    let mut errors = vec![];
 
     let successes = out
-        .filter_map(|(o, a)| {
-            o.as_ref().ok().map(|t| {
-                t.iter()
+        .filter_map(|(query_out, address)| {
+            if let Err(e) = &query_out {
+                warn!(?address, ?e, "Failed to geocode address");
+                errors.push((address, e.to_string()));
+                return None;
+            }
+            query_out.ok().map(|results| {
+                results
+                    .iter()
                     .map(|r| GeocodeBatchOutput {
-                        address: a.clone(),
+                        address: address.clone(),
                         rating: r.rating,
                         lon: r.lon,
                         lat: r.lat,
@@ -92,5 +120,7 @@ pub(crate) async fn geocode_batch(
         .flatten()
         .collect::<Vec<GeocodeBatchOutput>>();
 
-    f.print(successes)
+    let results = GeocodeBatchResults { successes, errors };
+
+    Ok(f.print(results)?)
 }

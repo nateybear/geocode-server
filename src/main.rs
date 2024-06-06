@@ -1,12 +1,13 @@
 use axum::{routing::post, serve, Router};
 use dotenvy_macro::dotenv;
-use log::{info, LevelFilter};
 use sqlx::{
     postgres::{PgConnectOptions, PgPoolOptions},
     ConnectOptions,
 };
 use std::{env::args, sync::Arc, time::Duration};
 use tokio::{main, net::TcpListener};
+use tracing::info;
+use tracing_subscriber::{filter::EnvFilter, fmt};
 
 mod error;
 use error::*;
@@ -18,9 +19,11 @@ use geocode::*;
 
 #[main]
 async fn main() -> Result<(), AppError> {
-    simple_logger::SimpleLogger::new()
-        .with_level(LevelFilter::Info)
-        .init()?;
+    fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .pretty()
+        .with_thread_ids(true)
+        .init();
 
     info!("Connecting to postgres");
 
@@ -28,7 +31,7 @@ async fn main() -> Result<(), AppError> {
         .username(dotenv!("PGUSER"))
         .password(dotenv!("PGPASSWORD"))
         .database(dotenv!("PGDATABASE"))
-        .log_slow_statements(LevelFilter::Info, Duration::from_secs(5));
+        .log_slow_statements(log::LevelFilter::Info, Duration::from_secs(5));
 
     let pool_size = args().nth(1).and_then(|s| s.parse().ok()).unwrap_or(4);
 
