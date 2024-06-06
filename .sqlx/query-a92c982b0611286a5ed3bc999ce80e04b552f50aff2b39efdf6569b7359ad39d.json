@@ -1,0 +1,71 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select g.rating, \n            st_x(g.geomout) as lon, \n            st_y(g.geomout) as lat, \n            (addy).address as stno, \n            (addy).streetname as street, \n            (addy).streettypeabbrev as styp, \n            (addy).location as city, \n            (addy).stateabbrev as state,\n            (addy).zip \n        from geocode($1, $2) as g",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "lon",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 2,
+        "name": "lat",
+        "type_info": "Float8"
+      },
+      {
+        "ordinal": 3,
+        "name": "stno",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "street",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "styp",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "city",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "state",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "zip",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a92c982b0611286a5ed3bc999ce80e04b552f50aff2b39efdf6569b7359ad39d"
+}
