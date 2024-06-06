@@ -9,7 +9,7 @@ use tracing::{instrument, warn};
 use crate::error::AppError;
 use crate::options::*;
 
-#[derive(Encode, Serialize, Default, Debug)]
+#[derive(Encode, Serialize, Default, Debug, Clone)]
 pub(crate) struct GeocodeOutput {
     rating: Option<i32>,
     lon: Option<f64>,
@@ -60,12 +60,11 @@ pub(crate) async fn geocode(
     Ok(f.print(query_out)?)
 }
 
-#[derive(Encode, Serialize, Default, Debug)]
+#[derive(Serialize, Default, Debug)]
 pub(crate) struct GeocodeBatchOutput {
     address: String,
-    rating: Option<i32>,
-    lon: Option<f64>,
-    lat: Option<f64>,
+    #[serde(flatten)]
+    output: GeocodeOutput,
 }
 
 #[derive(Serialize, Debug)]
@@ -106,9 +105,7 @@ pub(crate) async fn geocode_batch(
                     .iter()
                     .map(|r| GeocodeBatchOutput {
                         address: address.clone(),
-                        rating: r.rating,
-                        lon: r.lon,
-                        lat: r.lat,
+                        output: r.clone(),
                     })
                     .collect::<Vec<_>>()
             })
