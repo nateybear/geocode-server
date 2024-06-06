@@ -31,6 +31,7 @@ async fn main() -> Result<(), AppError> {
         .username(dotenv!("PGUSER"))
         .password(dotenv!("PGPASSWORD"))
         .database(dotenv!("PGDATABASE"))
+        .host(dotenv!("PGHOST"))
         .log_slow_statements(log::LevelFilter::Info, Duration::from_secs(5));
 
     info!("Connecting to postgres with options: {:?}", options);
