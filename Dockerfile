@@ -10,4 +10,6 @@ ENV RUST_LOG=info
 
 RUN cargo build --release
 
+RUN rm .env
+
 CMD ["./target/release/geocode-server"]
