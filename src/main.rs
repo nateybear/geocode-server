@@ -34,8 +34,6 @@ async fn main() -> Result<(), AppError> {
         .host(dotenv!("PGHOST"))
         .log_slow_statements(log::LevelFilter::Info, Duration::from_secs(5));
 
-    info!("Connecting to postgres with options: {:?}", options);
-
     let pool_size = args().nth(1).and_then(|s| s.parse().ok()).unwrap_or(4);
 
     info!("Creating a pool of {} connections", pool_size);

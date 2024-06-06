@@ -28,7 +28,7 @@ async fn geocode_query(
     address: &str,
     results: &i32,
 ) -> anyhow::Result<Vec<GeocodeOutput>> {
-    match sqlx::query_as!(
+    Ok(sqlx::query_as!(
         GeocodeOutput,
         "select g.rating, 
             st_x(g.geomout) as lon, 
@@ -44,11 +44,7 @@ async fn geocode_query(
         results
     )
     .fetch_all(pool)
-    .await?
-    {
-        out if out.is_empty() => Err(anyhow!("No results found")),
-        out => Ok(out),
-    }
+    .await?)
 }
 
 #[instrument(skip_all)]
