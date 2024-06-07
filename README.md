@@ -25,6 +25,6 @@ Configuration consists of two things:
     - `PGPASSWORD`
     - `PGDATABASE`
     - `PGHOST`
-    - `DATABASE_URL` (optional: this is for "online" SQLx compatilation to work)
+    - `DATABASE_URL` (optional: this is for "online" SQLx compilation to work)
 
 With these two ingredients, a `docker build .` command should build the Docker image for this service.
